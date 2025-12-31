@@ -1,0 +1,88 @@
+'use server';
+
+// Map our 3-letter codes to ESPN's expected format if needed
+export async function getRoster(teamAbbrev: string) {
+  let cleanAbbrev = teamAbbrev.toLowerCase();
+  if (cleanAbbrev === "uta") cleanAbbrev = "utah";
+  if (cleanAbbrev === "nop") cleanAbbrev = "no";
+  if (cleanAbbrev === "sas") cleanAbbrev = "sa";
+  if (cleanAbbrev === "gsw") cleanAbbrev = "gs";
+  if (cleanAbbrev === "nyk") cleanAbbrev = "ny";
+  if (cleanAbbrev === "was") cleanAbbrev = "wsh";
+
+  const response = await fetch(
+    `http://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${cleanAbbrev}/roster`,
+    { cache: 'no-store' }
+  );
+
+  if (!response.ok) {
+    console.error("Failed to fetch roster for", teamAbbrev);
+    return [];
+  }
+
+  const data = await response.json();
+  const athletes = data.athletes || [];
+
+  return athletes.map((player: any) => ({
+    id: player.id,
+    name: player.fullName,
+    position: player.position.abbreviation,
+    headshot: player.headshot?.href || "https://cdn.nba.com/headshots/nba/latest/1040x760/fallback.png",
+    jersey: player.jersey
+  }));
+}
+
+// --- UPDATED FUNCTION WITH CORRECT INDICES ---
+
+export async function getLast10Games(playerId: string) {
+  try {
+    const response = await fetch(
+      `https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${playerId}/gamelog`,
+      { cache: 'no-store' }
+    );
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    
+    // Specifically look for the Regular Season
+    const seasonTypes = data.seasonTypes || [];
+    const regularSeason = seasonTypes.find((s: any) => s.id === "2" || s.slug === "regular-season") || seasonTypes[0];
+    
+    const events = regularSeason?.categories?.[0]?.events || [];
+    
+    // Take the last 10 games
+    const last10 = events.slice(0, 10);
+
+    return last10.map((game: any) => {
+      const stats = game.stats; 
+      
+      // ESPN 2024-25 Stat Map (Verified via Probe):
+      // 0:MIN, 1:FG, 2:FG%, 3:3PT, 4:3P%, 5:FT, 6:FT%, 7:REB, 8:AST, 9:BLK, 10:STL, 11:PF, 12:TO, 13:PTS
+      
+      return {
+        // UI DATA (Seen by User in Grid)
+        date: game.gameDate,
+        opponent: game.opponent?.abbreviation || "OPP",
+        result: game.gameResult || "-",
+        score: game.score || "",
+        
+        minutes: stats[0] || "0",
+        points: stats[13] || "0",
+        rebounds: stats[7] || "0",
+        assists: stats[8] || "0",
+
+        // DEEP DATA (Hidden for AI Analysis)
+        steals: stats[10] || "0",
+        blocks: stats[9] || "0",
+        turnovers: stats[12] || "0",
+        fgSplit: stats[1] || "0-0",   // e.g. "7-14"
+        threePtSplit: stats[3] || "0-0", // e.g. "2-5"
+        ftSplit: stats[5] || "0-0"    // e.g. "5-6"
+      };
+    });
+  } catch (error) {
+    console.error("Failed to fetch game log:", error);
+    return [];
+  }
+}
