@@ -25,7 +25,7 @@ export default function UpgradeButton() {
         disabled={loading}
         className="w-full bg-black text-white font-black uppercase py-4 text-xl hover:bg-gray-800 transition-transform active:scale-95 disabled:opacity-50"
       >
-        {loading ? "Loading Stripe..." : "Unlock Now - $10/mo"}
+        {loading ? "Loading Stripe..." : "Unlock Now - $20/mo"}
       </button>
     </div>
   );
