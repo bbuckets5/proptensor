@@ -6,7 +6,8 @@ import TeamSelector from "@/components/TeamSelector";
 import PlayerSelector from "@/components/PlayerSelector";
 import AnalysisView from "@/components/AnalysisView";
 import Disclaimer from "@/components/Disclaimer";
-import ParlayGenerator from "@/components/ParlayGenerator"; // <--- NEW IMPORT
+import ParlayGenerator from "@/components/ParlayGenerator"; 
+import UpgradeButton from "@/components/UpgradeButton"; // <--- NEW IMPORT
 
 export default function Home() {
   const [hasAgreed, setHasAgreed] = useState(false);
@@ -82,19 +83,15 @@ export default function Home() {
           />
         )}
 
-        {/* --- FOOTER: ONLY SHOW IF NOT PRO --- */}
+        {/* --- FOOTER: UPGRADE BUTTON (IF NOT PRO) --- */}
         {!isPro && (
-          <div className="mt-16 pt-8 border-t-2 border-black/10 text-center">
-            <p className="font-bold text-sm mb-4 opacity-60">UNLOCK THE FULL POTENTIAL</p>
-            <a 
-              href="/subscribe" 
-              className="inline-block bg-black text-white px-8 py-3 font-bold text-sm hover:bg-gray-800 transition shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]"
-            >
-              UPGRADE TO PRO
-            </a>
+          <div className="mt-16 flex justify-center">
+            {/* We wrap it to center the component and constrain width */}
+            <div className="w-full max-w-md">
+                <UpgradeButton />
+            </div>
           </div>
         )}
-        {/* ---------------------------------- */}
         
         {/* OPTIONAL: SHOW "PRO ACTIVE" MESSAGE */}
         {isPro && (
