@@ -18,6 +18,9 @@ export async function createCheckoutSession() {
     return { error: "Please log in to subscribe." };
   }
 
+  // 1. Create a variable to store the URL so we can use it later
+  let sessionUrl: string | null = null;
+
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -37,10 +40,17 @@ export async function createCheckoutSession() {
     });
 
     if (session.url) {
-      redirect(session.url);
+      sessionUrl = session.url; // 2. Save the URL (Do NOT redirect yet)
     }
+
   } catch (error: any) {
     console.error("Stripe Error:", error);
     return { error: error.message };
+  }
+
+  // 3. Redirect HERE (Outside the try/catch block)
+  // This prevents the "NEXT_REDIRECT" error
+  if (sessionUrl) {
+    redirect(sessionUrl);
   }
 }
