@@ -5,7 +5,6 @@ import { Stripe } from "stripe";
 import { redirect } from "next/navigation";
 
 // Initialize Stripe
-// We use 'as any' here to prevent TypeScript from complaining about the specific version date
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2024-12-18.acacia' as any, 
 });
@@ -31,6 +30,7 @@ export async function createCheckoutSession() {
         },
       ],
       mode: "subscription",
+      allow_promotion_codes: true, // <--- 🟢 THIS ENABLES THE COUPON BOX
       success_url: `${process.env.NEXT_PUBLIC_URL}/?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/?canceled=true`,
       customer_email: user.emailAddresses[0].emailAddress,
@@ -40,7 +40,7 @@ export async function createCheckoutSession() {
     });
 
     if (session.url) {
-      sessionUrl = session.url; // 2. Save the URL (Do NOT redirect yet)
+      sessionUrl = session.url; 
     }
 
   } catch (error: any) {
@@ -49,7 +49,6 @@ export async function createCheckoutSession() {
   }
 
   // 3. Redirect HERE (Outside the try/catch block)
-  // This prevents the "NEXT_REDIRECT" error
   if (sessionUrl) {
     redirect(sessionUrl);
   }
