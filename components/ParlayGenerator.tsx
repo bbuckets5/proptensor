@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { generateParlay } from '@/app/actions'; // Ensure this path matches your project structure
+import { generateParlay } from '@/app/actions'; 
 
 // --- THE SMART PROMPTS ---
 const QUICK_PROMPTS = [
@@ -46,7 +46,7 @@ export default function ParlayGenerator() {
   const handleGenerate = async () => {
     // 1. Validation: The new AI Logic requires context!
     if (!customNotes.trim()) {
-      alert("⚠️ STOP! \n\nYou must paste today's matchups or injury news in the box.\nThe AI cannot see the live schedule without your help.");
+      alert("⚠️ MISSING DATA! \n\nPlease paste today's matchups and injury news in the box.\n\nThe AI does not have a live TV feed, so it needs your notes to be accurate.");
       return;
     }
 
@@ -56,7 +56,7 @@ export default function ParlayGenerator() {
     // 2. Send the notes as the "Source of Truth"
     const result = await generateParlay({
         date: today,
-        games: [], // We send empty games array because we rely on 'notes' now
+        games: [], 
         notes: customNotes
     });
 
@@ -95,27 +95,29 @@ export default function ParlayGenerator() {
                         /* INPUT STATE */
                         <div className="space-y-4">
                             
-                            {/* --- 🚨 ALERT BANNER (NEW) --- */}
-                            <div className="bg-red-50 border-l-8 border-red-600 p-4 shadow-sm">
+                            {/* --- 🚨 ALERT BANNER --- */}
+                            <div className="bg-blue-50 border-l-8 border-blue-600 p-4 shadow-sm">
                                 <div className="flex items-start gap-4">
-                                    <div className="text-4xl select-none">⚠️</div>
+                                    <div className="text-4xl select-none">ℹ️</div>
                                     <div>
-                                        <h4 className="text-red-700 font-black uppercase text-lg tracking-wide">Read Before Using</h4>
-                                        <p className="text-red-900 font-bold text-sm leading-snug mt-1">
-                                            The AI <span className="underline decoration-2 underline-offset-2">does not</span> have live internet access. 
+                                        <h4 className="text-blue-900 font-black uppercase text-lg tracking-wide">How to get a Lock</h4>
+                                        <p className="text-blue-800 font-bold text-sm leading-snug mt-1">
+                                            The AI acts as a <span className="underline decoration-2 underline-offset-2">Strategist</span>. It needs the raw data from you.
                                             <br className="mb-2"/>
-                                            You <strong>MUST</strong> paste the matchups and injury news below, or it will not work.
+                                            <strong>Paste the slate & injuries below</strong> so it knows who is playing!
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <p className="font-bold text-lg">Tell the AI what to cook 👨‍🍳:</p>
+                            <p className="font-bold text-lg">
+                                Paste Data Here <span className="text-red-600 text-sm ml-2 font-mono">(Required)</span>:
+                            </p>
                             
-                            {/* --- TEXT AREA --- */}
+                            {/* --- TEXT AREA (UPDATED PLACEHOLDER) --- */}
                             <textarea 
                                 className="w-full p-4 border-4 border-black font-mono focus:bg-yellow-50 focus:outline-none min-h-[200px] text-sm font-bold placeholder:text-gray-400"
-                                placeholder="PASTE HERE: Today's matchups, injury reports, or specific data you want analyzed..."
+                                placeholder={`STEP 1: Paste today's matchups (e.g. Lakers vs Heat)\nSTEP 2: Paste key injuries (e.g. Butler is OUT)\nSTEP 3: Ask for what you want (e.g. "Give me a safe 3-leg parlay")\n\n(The AI relies on this info to be accurate!)`}
                                 value={customNotes}
                                 onChange={(e) => setCustomNotes(e.target.value)}
                             />
