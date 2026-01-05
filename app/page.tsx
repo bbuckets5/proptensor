@@ -1,20 +1,20 @@
 'use client'; 
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs'; 
+import { useUser } from '@clerk/nextjs'; // <--- CHANGED THIS
 import TeamSelector from "@/components/TeamSelector";
 import PlayerSelector from "@/components/PlayerSelector";
 import AnalysisView from "@/components/AnalysisView";
 import Disclaimer from "@/components/Disclaimer";
 import ParlayGenerator from "@/components/ParlayGenerator"; 
-import UpgradeButton from "@/components/UpgradeButton"; // <--- NEW IMPORT
+import UpgradeButton from "@/components/UpgradeButton"; 
 
 export default function Home() {
   const [hasAgreed, setHasAgreed] = useState(false);
-  const { has } = useAuth(); 
+  const { user, isLoaded } = useUser(); // <--- Get the User Data (Metadata)
   
-  // Check if user has the 'pro' plan (Safely handle if 'has' is loading)
-  const isPro = has ? has({ plan: 'pro' }) : false;
+  // 🟢 THE FIX: Check the Metadata Sticker, not the Permission
+  const isPro = isLoaded && user?.publicMetadata?.plan === 'pro';
   
   // Navigation State
   const [matchup, setMatchup] = useState<{home: string, away: string} | null>(null);
@@ -42,6 +42,15 @@ export default function Home() {
           <div className="inline-block bg-blue-600 text-white px-4 py-1 font-bold text-sm border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             NBA AI PREDICTION ENGINE
           </div>
+          
+          {/* 🟢 NEW: VISIBLE PRO BADGE */}
+          {isPro && (
+            <div className="mt-4 animate-in fade-in zoom-in duration-500">
+              <span className="bg-green-500 text-white px-3 py-1 font-bold text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                ✅ PRO MEMBERSHIP ACTIVE
+              </span>
+            </div>
+          )}
         </div>
         
         {/* VIEW 1: HOME SCREEN (Teams + Parlay) */}
@@ -83,20 +92,12 @@ export default function Home() {
           />
         )}
 
-        {/* --- FOOTER: UPGRADE BUTTON (IF NOT PRO) --- */}
+        {/* --- FOOTER: UPGRADE BUTTON (ONLY IF NOT PRO) --- */}
         {!isPro && (
           <div className="mt-16 flex justify-center">
-            {/* We wrap it to center the component and constrain width */}
             <div className="w-full max-w-md">
                 <UpgradeButton />
             </div>
-          </div>
-        )}
-        
-        {/* OPTIONAL: SHOW "PRO ACTIVE" MESSAGE */}
-        {isPro && (
-          <div className="mt-16 text-center opacity-50 font-bold text-xs">
-            [ PRO MEMBERSHIP ACTIVE ]
           </div>
         )}
 
