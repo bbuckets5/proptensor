@@ -26,7 +26,7 @@ export default function Disclaimer({ onAgree }: Props) {
           </p>
 
           <div className="bg-white border-4 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <p className="mb-4 font-bold uppercase underline">How this works:</p>
+            <p className="mb-4 font-bold uppercase underline">DISCLAIMER! :</p>
             <p className="text-sm mb-4">
               We do NOT provide "locks" or guaranteed winners. We model how a coach might manage their rotation based on:
             </p>
