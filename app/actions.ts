@@ -1,7 +1,7 @@
 'use server';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server'; // <--- Added currentUser
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -23,24 +23,30 @@ interface PredictionData {
   };
 }
 
-// Input for the new Parlay Feature
 interface ParlayRequest {
   date: string;
   games: string[]; 
-  notes?: string;  // This is now the "Source of Truth"
+  notes?: string; 
 }
 
-// Input for the Chat/Reply Feature
 interface ChatRequest {
   originalContext: any; 
   userMessage: string;  
 }
 
-// --- 1. SINGLE PREDICTION (EXISTING) ---
+// --- HELPER: CHECK IF USER IS PRO (THE FIX) ---
+async function checkProStatus() {
+  const user = await currentUser();
+  // We check the Metadata sticker that Stripe put there
+  const isPro = user?.publicMetadata?.plan === 'pro';
+  return isPro;
+}
+
+// --- 1. SINGLE PREDICTION ---
 export async function generatePrediction(data: PredictionData) {
-  // Security Gate
-  const { has } = await auth();
-  if (!has({ plan: 'pro' })) {
+  // 🟢 NEW SECURITY GATE
+  const isPro = await checkProStatus();
+  if (!isPro) {
     return { error: "Upgrade Required: You must be a Pro member to use the AI." };
   }
 
@@ -106,11 +112,11 @@ export async function generatePrediction(data: PredictionData) {
   }
 }
 
-// --- 2. PARLAY GENERATOR (UPDATED: STRICT TRUTH MODE) ---
+// --- 2. PARLAY GENERATOR ---
 export async function generateParlay(data: ParlayRequest) {
-  // Security Gate
-  const { has } = await auth();
-  if (!has({ plan: 'pro' })) {
+  // 🟢 NEW SECURITY GATE
+  const isPro = await checkProStatus();
+  if (!isPro) {
     return { error: "Upgrade Required: You must be a Pro member to generate Parlays." };
   }
 
@@ -165,11 +171,11 @@ export async function generateParlay(data: ParlayRequest) {
   }
 }
 
-// --- 3. CHAT / DEBATE (EXISTING) ---
+// --- 3. CHAT / DEBATE ---
 export async function chatWithAI(data: ChatRequest) {
-    // Security Gate
-    const { has } = await auth();
-    if (!has({ plan: 'pro' })) {
+    // 🟢 NEW SECURITY GATE
+    const isPro = await checkProStatus();
+    if (!isPro) {
       return { error: "Upgrade Required" };
     }
   
@@ -209,4 +215,4 @@ export async function chatWithAI(data: ChatRequest) {
       console.error("Chat Error:", error);
       return { error: "Failed to reply." };
     }
-  }
+}
