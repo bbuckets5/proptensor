@@ -455,6 +455,14 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
 
              <div>
                 <label className="block text-sm font-bold mb-1 uppercase">📝 Analyst Context (The "Why")</label>
+                
+                {/* 🟢 NEW TIP BANNER IS HERE */}
+                <div className="bg-blue-50 border-l-4 border-blue-600 p-2 mb-3">
+                    <p className="text-xs text-blue-900 font-bold">
+                        💡 <strong>Pro Tip:</strong> The AI gets smarter with context. The more details you paste here (injuries, narrative, fatigue), the sharper the edge.
+                    </p>
+                </div>
+
                 <p className="text-xs text-gray-500 mb-2 font-bold">
                     Explain why the stats might be misleading. (e.g. "Star player returning", "Blowout minutes", "Flu game")
                 </p>

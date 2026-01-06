@@ -32,7 +32,7 @@ export async function getRoster(teamAbbrev: string) {
   }));
 }
 
-// --- UPDATED FUNCTION WITH CORRECT INDICES ---
+// --- UPDATED FUNCTION WITH CORRECT REVERSE LOGIC ---
 
 export async function getLast10Games(playerId: string) {
   try {
@@ -45,19 +45,19 @@ export async function getLast10Games(playerId: string) {
 
     const data = await response.json();
     
-    // Specifically look for the Regular Season
+    // Specifically look for the Regular Season (id "2")
     const seasonTypes = data.seasonTypes || [];
     const regularSeason = seasonTypes.find((s: any) => s.id === "2" || s.slug === "regular-season") || seasonTypes[0];
     
     const events = regularSeason?.categories?.[0]?.events || [];
     
-    // Take the last 10 games
-    const last10 = events.slice(0, 10);
+    // 🟢 THE FIX: Reverse the array to get NEWEST games first, then take 10
+    const last10 = events.reverse().slice(0, 10);
 
     return last10.map((game: any) => {
       const stats = game.stats; 
       
-      // ESPN 2024-25 Stat Map (Verified via Probe):
+      // ESPN 2024-25 Stat Map:
       // 0:MIN, 1:FG, 2:FG%, 3:3PT, 4:3P%, 5:FT, 6:FT%, 7:REB, 8:AST, 9:BLK, 10:STL, 11:PF, 12:TO, 13:PTS
       
       return {
