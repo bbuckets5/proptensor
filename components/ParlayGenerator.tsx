@@ -44,7 +44,7 @@ export default function ParlayGenerator() {
   const [customNotes, setCustomNotes] = useState('');
 
   const handleGenerate = async () => {
-    // 1. Validation: The new AI Logic requires context!
+    // 1. Validation
     if (!customNotes.trim()) {
       alert("⚠️ MISSING DATA! \n\nPlease paste today's matchups and injury news in the box.\n\nThe AI does not have a live TV feed, so it needs your notes to be accurate.");
       return;
@@ -53,7 +53,7 @@ export default function ParlayGenerator() {
     setLoading(true);
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     
-    // 2. Send the notes as the "Source of Truth"
+    // 2. Send the notes
     const result = await generateParlay({
         date: today,
         games: [], 
@@ -80,13 +80,21 @@ export default function ParlayGenerator() {
 
       {/* THE MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white border-4 border-black w-full max-w-2xl shadow-[12px_12px_0px_0px_#fff] animate-in zoom-in-95 duration-200 my-8">
+        // 🟢 FIX IS HERE: Changed 'items-center' to 'items-start md:items-center'
+        // This ensures on mobile it starts at the top so you can scroll to the X button
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto">
+            
+            <div className="bg-white border-4 border-black w-full max-w-2xl shadow-[12px_12px_0px_0px_#fff] animate-in zoom-in-95 duration-200 my-8 md:my-0">
                 
                 {/* Header */}
-                <div className="bg-black text-white p-4 flex justify-between items-center">
-                    <h2 className="text-2xl font-black uppercase tracking-widest">💰 The Daily 3-Leg</h2>
-                    <button onClick={() => setShowModal(false)} className="text-white hover:text-red-500 font-bold text-2xl">✕</button>
+                <div className="bg-black text-white p-4 flex justify-between items-center sticky top-0 z-10">
+                    <h2 className="text-xl md:text-2xl font-black uppercase tracking-widest">💰 The Daily 3-Leg</h2>
+                    <button 
+                        onClick={() => setShowModal(false)} 
+                        className="text-white hover:text-red-500 font-bold text-4xl px-2 leading-none"
+                    >
+                        ✕
+                    </button>
                 </div>
 
                 <div className="p-6 space-y-6">
@@ -114,7 +122,7 @@ export default function ParlayGenerator() {
                                 Paste Data Here <span className="text-red-600 text-sm ml-2 font-mono">(Required)</span>:
                             </p>
                             
-                            {/* --- TEXT AREA (UPDATED PLACEHOLDER) --- */}
+                            {/* --- TEXT AREA --- */}
                             <textarea 
                                 className="w-full p-4 border-4 border-black font-mono focus:bg-yellow-50 focus:outline-none min-h-[200px] text-sm font-bold placeholder:text-gray-400"
                                 placeholder={`STEP 1: Paste today's matchups (e.g. Lakers vs Heat)\nSTEP 2: Paste key injuries (e.g. Butler is OUT)\nSTEP 3: Ask for what you want (e.g. "Give me a safe 3-leg parlay")\n\n(The AI relies on this info to be accurate!)`}
@@ -148,12 +156,12 @@ export default function ParlayGenerator() {
                         <div className="space-y-6">
                             <div className="flex justify-between items-end border-b-4 border-black pb-2">
                                 <div>
-                                    <h3 className="text-3xl font-black uppercase text-purple-700">{parlay.parlay_name}</h3>
+                                    <h3 className="text-2xl md:text-3xl font-black uppercase text-purple-700">{parlay.parlay_name}</h3>
                                     <span className="bg-black text-white px-2 py-1 font-bold text-sm uppercase">{parlay.risk_level} Risk</span>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm font-bold text-gray-500 uppercase">Est. Odds</p>
-                                    <p className="text-4xl font-black">{parlay.total_odds}</p>
+                                    <p className="text-3xl md:text-4xl font-black">{parlay.total_odds}</p>
                                 </div>
                             </div>
 
