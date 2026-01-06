@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getRoster, getLast10Games } from '@/lib/nba';
-import { generatePrediction, chatWithAI } from '@/app/actions'; // <--- Added chatWithAI
+import { generatePrediction, chatWithAI } from '@/app/actions'; 
 
 interface Props {
   player: { id: string; name: string; position: string; headshot: string; team: string };
@@ -255,7 +255,8 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
   };
 
   return (
-    <div className="bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-h-[600px] relative">
+    // 🟢 MOBILE FIX 1: Reduced padding from p-8 to p-4 on mobile
+    <div className="bg-white border-4 border-black p-4 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-h-[600px] relative">
       
       {/* WARNING MODAL */}
       {showWarning && (
@@ -311,7 +312,8 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
         <div className="flex gap-4 items-center">
           <img src={player.headshot} className="w-20 h-20 rounded-full border-4 border-black bg-zinc-100 object-cover" />
           <div>
-            <h2 className="text-3xl font-black uppercase">{player.name}</h2>
+            {/* 🟢 MOBILE FIX 2: Text size */}
+            <h2 className="text-2xl md:text-3xl font-black uppercase">{player.name}</h2>
             <p className="text-xl font-bold text-gray-500">vs {opponent}</p>
           </div>
         </div>
@@ -393,14 +395,15 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
         <div className="space-y-8">
             <div className="bg-orange-100 p-4 border-4 border-black">
                 <h3 className="font-black text-lg uppercase mb-4 underline decoration-4 decoration-black">1. What is the Line?</h3>
-                <div className="flex gap-4">
-                    <select className="p-2 border-4 border-black font-bold w-1/2" value={betType} onChange={e => setBetType(e.target.value)}>
+                {/* 🟢 MOBILE FIX 3: Flex-col on mobile, Flex-row on desktop */}
+                <div className="flex flex-col md:flex-row gap-4">
+                    <select className="p-2 border-4 border-black font-bold w-full md:w-1/2" value={betType} onChange={e => setBetType(e.target.value)}>
                         <optgroup label="Main Stats"><option value="Points">Points</option><option value="Rebounds">Rebounds</option><option value="Assists">Assists</option><option value="Threes Made">Threes Made</option><option value="Fantasy Score">Fantasy Score</option></optgroup>
                         <optgroup label="Defense/Misc"><option value="Turnovers">Turnovers</option><option value="Steals">Steals</option><option value="Blocks">Blocks</option><option value="Steals + Blocks">Steals + Blocks</option></optgroup>
                         <optgroup label="Combos"><option value="Pts + Rebs + Asts">Pts + Rebs + Asts</option><option value="Pts + Rebs">Pts + Rebs</option><option value="Pts + Asts">Pts + Asts</option><option value="Double Double">Double Double</option></optgroup>
                         <optgroup label="Shooting Efficiency"><option value="FGA">FG Attempts</option><option value="FGM">FG Made</option><option value="3PA">3-Pt Attempts</option><option value="FTM">Free Throws Made</option></optgroup>
                     </select>
-                    <input type="number" placeholder="e.g. 24.5" className="flex-1 p-2 border-4 border-black font-mono text-xl focus:outline-none focus:bg-white" value={bettingLine} onChange={e => setBettingLine(e.target.value)} />
+                    <input type="number" placeholder="e.g. 24.5" className="w-full md:flex-1 p-2 border-4 border-black font-mono text-xl focus:outline-none focus:bg-white" value={bettingLine} onChange={e => setBettingLine(e.target.value)} />
                 </div>
             </div>
           
