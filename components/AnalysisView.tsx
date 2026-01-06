@@ -369,11 +369,12 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
                  </div>
              )}
 
-             <div className="flex gap-2">
+             {/* 🟢 MOBILE FIX 4: Flex-col on mobile, Row on desktop */}
+             <div className="flex flex-col md:flex-row gap-2">
                  <input 
                     type="text" 
                     placeholder="E.g. But Curry is sitting out tonight..." 
-                    className="flex-1 p-3 text-black font-bold border-4 border-white focus:outline-none focus:bg-blue-50"
+                    className="w-full md:flex-1 p-3 text-black font-bold border-4 border-white focus:outline-none focus:bg-blue-50"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleChatSubmit()}
@@ -381,7 +382,7 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
                  <button 
                     onClick={handleChatSubmit} 
                     disabled={isChatting}
-                    className="bg-white text-black font-black uppercase px-6 hover:bg-gray-200 border-4 border-white disabled:opacity-50"
+                    className="w-full md:w-auto bg-white text-black font-black uppercase px-6 py-3 md:py-0 hover:bg-gray-200 border-4 border-white disabled:opacity-50"
                  >
                     {isChatting ? '...' : 'Reply'}
                  </button>
