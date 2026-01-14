@@ -20,6 +20,7 @@ interface PredictionData {
     blowout: string;
     injuries: string[];
     matchup: string;
+    roster?: string; // 🟢 ADDED: Roster string passed from frontend
   };
 }
 
@@ -69,6 +70,9 @@ export async function generatePrediction(data: PredictionData) {
     ? `USER ANALYST DATA & NOTES:\n${data.manualTrend}` 
     : `RAW GAME LOG:\n${JSON.stringify(data.recentGames)}`;
 
+  // 🟢 ROSTER INJECTION
+  const activeRoster = data.context.roster || "Unknown - Use internal knowledge";
+
   const prompt = `
     You are a professional NBA Betting Strategist.
     
@@ -86,13 +90,18 @@ export async function generatePrediction(data: PredictionData) {
     - Turnovers: ${data.stats.turnovers || '0'}
     - Minutes: ${data.stats.minutes || '0'}
 
-    ### 3. CONTEXT
+    ### 3. CONTEXT & REALITY CHECK
     - Blowout Risk: ${data.context.blowout}
     - Injuries: ${data.context.injuries.join(', ') || "None"}
     - Matchup: ${data.context.matchup}
+    
+    ### 4. ACTIVE ROSTER (LIVE DATA - TRUST THIS OVER TRAINING DATA)
+    - The following players are confirmed active on the user's team right now.
+    - If a player like Brandon Ingram is listed here, HE IS ON THE TEAM. Ignore your old training data.
+    - ROSTER LIST: [ ${activeRoster} ]
 
     ### RULES:
-    1. TRUST THE USER NOTES ABOVE ALL ELSE.
+    1. TRUST THE USER NOTES AND ROSTER LIST ABOVE ALL ELSE.
     2. Analyze efficiency (shooting splits) over raw points.
     3. Be decisive.
 
@@ -191,7 +200,6 @@ export async function chatWithAI(data: ChatRequest) {
     }
 
     // 🗓️ FORCE THE DATE & CONTEXT
-    // This fixes the issue where the AI thinks it's 2024.
     const today = new Date().toLocaleDateString('en-US', { 
         weekday: 'long', 
         year: 'numeric', 

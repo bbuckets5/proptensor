@@ -195,6 +195,9 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
         minutes: lastGameRow.minutes || 'N/A'
     };
 
+    // 🟢 UPDATED: Capture active roster list to fix AI hallucinations
+    const activeRoster = teammates.map((t: any) => t.name).join(', ');
+
     try {
         const result = await generatePrediction({
             player: player.name,
@@ -207,7 +210,10 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
             context: {
                 blowout: blowoutRisk,
                 injuries: injuryNotes,
-                matchup: primaryDefender || "General Defense"
+                matchup: primaryDefender || "General Defense",
+                // 🟢 PASS ROSTER TO BACKEND
+                // @ts-ignore - Ignoring TS check until backend interface is updated
+                roster: activeRoster 
             }
         });
 
