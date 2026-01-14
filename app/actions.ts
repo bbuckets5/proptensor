@@ -182,16 +182,33 @@ export async function generateParlay(data: ParlayRequest) {
   }
 }
 
-// --- 3. CHAT / DEBATE ---
+// --- 3. CHAT / DEBATE (UPDATED WITH REALITY CHECK) ---
 export async function chatWithAI(data: ChatRequest) {
     // 🟢 SECURITY GATE
     const isAllowed = await checkProStatus();
     if (!isAllowed) {
       return { error: "Upgrade Required" };
     }
+
+    // 🗓️ FORCE THE DATE & CONTEXT
+    // This fixes the issue where the AI thinks it's 2024.
+    const today = new Date().toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
   
     const prompt = `
-      You are a stubborn but logical NBA Analyst. You just provided a prediction, and the user is arguing with you.
+      You are a stubborn but logical NBA Analyst. 
+      
+      ### CRITICAL REALITY CHECK:
+      - **CURRENT DATE:** ${today}
+      - **SEASON:** 2025-26 NBA Season.
+      - **ROSTER RULES:** The user is providing live, real-time data from the future (relative to your training data). 
+      - **DO NOT** use your internal training data to contradict the user's roster or stats. 
+      - If the user says Brandon Ingram is on the Raptors, **HE IS ON THE RAPTORS**.
+      - If the user says it is 2026, **IT IS 2026**.
   
       ### PREVIOUS PREDICTION CONTEXT:
       ${JSON.stringify(data.originalContext)}
@@ -200,10 +217,11 @@ export async function chatWithAI(data: ChatRequest) {
       "${data.userMessage}"
   
       ### INSTRUCTIONS:
-      1. Analyze the user's point. Is it valid? (e.g. Did they mention an injury you missed?)
-      2. If they are right, admit it and adjust the pick.
-      3. If they are wrong (e.g. relying on emotion), double down and explain why stats > feelings.
-      4. Keep it short, conversational, and slightly edgy.
+      1. Analyze the user's point based on the *current* 2025-26 reality, not 2024.
+      2. If the user mentions a trade or injury that contradicts your training data, **ASSUME THE USER IS CORRECT**.
+      3. If they are right, admit it and adjust the pick.
+      4. If they are wrong (e.g. relying on emotion), double down.
+      5. Keep it short, conversational, and slightly edgy.
   
       ### OUTPUT (JSON ONLY):
       {
