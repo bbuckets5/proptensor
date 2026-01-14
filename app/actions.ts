@@ -1,7 +1,7 @@
 'use server';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { auth, currentUser } from '@clerk/nextjs/server'; // <--- Added currentUser
+import { auth, currentUser } from '@clerk/nextjs/server';
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -34,19 +34,30 @@ interface ChatRequest {
   userMessage: string;  
 }
 
-// --- HELPER: CHECK IF USER IS PRO (THE FIX) ---
+// --- HELPER: CHECK IF USER IS PRO OR IN FREE TRIAL ---
 async function checkProStatus() {
   const user = await currentUser();
-  // We check the Metadata sticker that Stripe put there
-  const isPro = user?.publicMetadata?.plan === 'pro';
-  return isPro;
+  
+  if (!user) return false;
+
+  // 1. Check if they bought the plan (Stripe)
+  const isPro = user.publicMetadata?.plan === 'pro';
+
+  // 2. Check if they are in the 24-Hour Free Trial
+  // user.createdAt is in milliseconds. 
+  // 24 hours = 1000 * 60 * 60 * 24 = 86400000 ms
+  const oneDay = 86400000;
+  const isFreeTrial = (Date.now() - user.createdAt) < oneDay;
+
+  // Grant access if either is true
+  return isPro || isFreeTrial;
 }
 
 // --- 1. SINGLE PREDICTION ---
 export async function generatePrediction(data: PredictionData) {
-  // 🟢 NEW SECURITY GATE
-  const isPro = await checkProStatus();
-  if (!isPro) {
+  // 🟢 SECURITY GATE
+  const isAllowed = await checkProStatus();
+  if (!isAllowed) {
     return { error: "Upgrade Required: You must be a Pro member to use the AI." };
   }
 
@@ -114,9 +125,9 @@ export async function generatePrediction(data: PredictionData) {
 
 // --- 2. PARLAY GENERATOR ---
 export async function generateParlay(data: ParlayRequest) {
-  // 🟢 NEW SECURITY GATE
-  const isPro = await checkProStatus();
-  if (!isPro) {
+  // 🟢 SECURITY GATE
+  const isAllowed = await checkProStatus();
+  if (!isAllowed) {
     return { error: "Upgrade Required: You must be a Pro member to generate Parlays." };
   }
 
@@ -173,9 +184,9 @@ export async function generateParlay(data: ParlayRequest) {
 
 // --- 3. CHAT / DEBATE ---
 export async function chatWithAI(data: ChatRequest) {
-    // 🟢 NEW SECURITY GATE
-    const isPro = await checkProStatus();
-    if (!isPro) {
+    // 🟢 SECURITY GATE
+    const isAllowed = await checkProStatus();
+    if (!isAllowed) {
       return { error: "Upgrade Required" };
     }
   
