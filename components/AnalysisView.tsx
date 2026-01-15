@@ -195,8 +195,9 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
         minutes: lastGameRow.minutes || 'N/A'
     };
 
-    // 🟢 UPDATED: Capture active roster list to fix AI hallucinations
+    // 🟢 UPDATED: Capture active roster list AND opponent roster to fix AI hallucinations
     const activeRoster = teammates.map((t: any) => t.name).join(', ');
+    const opponentRoster = opponents.map((o: any) => o.name).join(', ');
 
     try {
         const result = await generatePrediction({
@@ -211,9 +212,10 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
                 blowout: blowoutRisk,
                 injuries: injuryNotes,
                 matchup: primaryDefender || "General Defense",
-                // 🟢 PASS ROSTER TO BACKEND
+                // 🟢 PASS ROSTERS TO BACKEND
                 // @ts-ignore - Ignoring TS check until backend interface is updated
-                roster: activeRoster 
+                roster: activeRoster,
+                opponentRoster: opponentRoster
             }
         });
 

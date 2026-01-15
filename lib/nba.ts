@@ -1,14 +1,29 @@
 'use server';
 
-// Map our 3-letter codes to ESPN's expected format if needed
+// 🟢 ROBUST TEAM MAP: Ensures ESPN never rejects a team code
+const TEAM_MAP: Record<string, string> = {
+  // Common Issues Fixed
+  "UTA": "utah",
+  "NOP": "no",
+  "SAS": "sa",
+  "GSW": "gs",
+  "NYK": "ny",
+  "WAS": "wsh",
+  "PHX": "phx", // Sometimes PHO, but PHX usually works on v2
+  "BKN": "bkn",
+  "OKC": "okc",
+  // Standard (Just in case)
+  "ATL": "atl", "BOS": "bos", "CHA": "cha", "CHI": "chi", "CLE": "cle",
+  "DAL": "dal", "DEN": "den", "DET": "det", "HOU": "hou", "IND": "ind",
+  "LAC": "lac", "LAL": "lal", "MEM": "mem", "MIA": "mia", "MIL": "mil",
+  "MIN": "min", "ORL": "orl", "PHI": "phi", "POR": "por", "SAC": "sac",
+  "TOR": "tor"
+};
+
 export async function getRoster(teamAbbrev: string) {
-  let cleanAbbrev = teamAbbrev.toLowerCase();
-  if (cleanAbbrev === "uta") cleanAbbrev = "utah";
-  if (cleanAbbrev === "nop") cleanAbbrev = "no";
-  if (cleanAbbrev === "sas") cleanAbbrev = "sa";
-  if (cleanAbbrev === "gsw") cleanAbbrev = "gs";
-  if (cleanAbbrev === "nyk") cleanAbbrev = "ny";
-  if (cleanAbbrev === "was") cleanAbbrev = "wsh";
+  const upper = teamAbbrev.toUpperCase();
+  // Use the map, or fallback to the original if not found
+  const cleanAbbrev = TEAM_MAP[upper] || teamAbbrev.toLowerCase();
 
   const response = await fetch(
     `http://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${cleanAbbrev}/roster`,
@@ -16,7 +31,7 @@ export async function getRoster(teamAbbrev: string) {
   );
 
   if (!response.ok) {
-    console.error("Failed to fetch roster for", teamAbbrev);
+    console.error(`Failed to fetch roster for ${teamAbbrev} (mapped to: ${cleanAbbrev})`);
     return [];
   }
 

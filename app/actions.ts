@@ -20,7 +20,8 @@ interface PredictionData {
     blowout: string;
     injuries: string[];
     matchup: string;
-    roster?: string; // 🟢 ADDED: Roster string passed from frontend
+    roster?: string;         // 🟢 Teammates
+    opponentRoster?: string; // 🟢 Opponents (Fixed Error)
   };
 }
 
@@ -68,20 +69,31 @@ export async function generatePrediction(data: PredictionData) {
 
   const trendSource = data.manualTrend 
     ? `USER ANALYST DATA & NOTES:\n${data.manualTrend}` 
-    : `RAW GAME LOG:\n${JSON.stringify(data.recentGames)}`;
+    : `RAW GAME LOG (Past Performance):\n${JSON.stringify(data.recentGames)}`;
 
   // 🟢 ROSTER INJECTION
-  const activeRoster = data.context.roster || "Unknown - Use internal knowledge";
+  const activeRoster = data.context.roster || "Unknown";
+  const opponentRoster = data.context.opponentRoster || "Unknown";
 
   const prompt = `
     You are a professional NBA Betting Strategist.
+
+    ### 0. 🚨 CRITICAL ROSTER CHECK (READ FIRST)
     
+    **A. TEAMMATE CHECK (Usage & Volume)**
+    - **Active Roster:** [ ${activeRoster} ]
+    - **Instruction:** If you see stars (e.g. Brandon Ingram, Zion) listed here who are NOT in the historical logs, **THEY ARE PLAYING**. You MUST assume they will take shots away from ${data.player}.
+    
+    **B. OPPONENT CHECK (Defense & Matchups)**
+    - **Opponent Roster:** [ ${opponentRoster} ]
+    - **Instruction:** Look at this list. Does the opponent have their elite defenders (e.g. Gobert, Wemby, Bam) listed? Or are they missing? Use this to determine if the matchup is actually "Easy" or "Hard."
+
     ### THE MATCHUP
     - Player: ${data.player}
     - Opponent: ${data.opponent}
     - BET: ${data.betType} @ ${data.line}
 
-    ### 1. THE DATA
+    ### 1. THE DATA (HISTORY)
     ${trendSource}
     
     ### 2. DEEP STAT CONTEXT
@@ -90,15 +102,10 @@ export async function generatePrediction(data: PredictionData) {
     - Turnovers: ${data.stats.turnovers || '0'}
     - Minutes: ${data.stats.minutes || '0'}
 
-    ### 3. CONTEXT & REALITY CHECK
+    ### 3. CONTEXT
     - Blowout Risk: ${data.context.blowout}
     - Injuries: ${data.context.injuries.join(', ') || "None"}
     - Matchup: ${data.context.matchup}
-    
-    ### 4. ACTIVE ROSTER (LIVE DATA - TRUST THIS OVER TRAINING DATA)
-    - The following players are confirmed active on the user's team right now.
-    - If a player like Brandon Ingram is listed here, HE IS ON THE TEAM. Ignore your old training data.
-    - ROSTER LIST: [ ${activeRoster} ]
 
     ### RULES:
     1. TRUST THE USER NOTES AND ROSTER LIST ABOVE ALL ELSE.
@@ -109,7 +116,11 @@ export async function generatePrediction(data: PredictionData) {
     {
       "pick": "OVER" or "UNDER",
       "confidence": "Strong/Medium/Risky",
-      "thought_process": ["Step 1...", "Step 2...", "Step 3...", "Step 4..."],
+      "thought_process": [
+          "1. Roster Check: I see [Star Name] is ACTIVE, which impacts usage...", 
+          "2. Analyzing recent efficiency...", 
+          "3. Matchup context..."
+      ],
       "safe_line": "Alternative safe bet",
       "risky_line": "High risk ladder play",
       "better_prop": "Pivot suggestion"
