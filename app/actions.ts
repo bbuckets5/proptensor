@@ -1,10 +1,12 @@
 'use server';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { auth, currentUser } from '@clerk/nextjs/server';
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // Ensure this is in .env.local
+});
 
 // --- INTERFACES ---
 
@@ -20,8 +22,8 @@ interface PredictionData {
     blowout: string;
     injuries: string[];
     matchup: string;
-    roster?: string;         // 🟢 Teammates
-    opponentRoster?: string; // 🟢 Opponents (Fixed Error)
+    roster?: string;         // 🟢 Teammates (Live from ESPN)
+    opponentRoster?: string; // 🟢 Opponents (Live from ESPN)
   };
 }
 
@@ -46,16 +48,13 @@ async function checkProStatus() {
   const isPro = user.publicMetadata?.plan === 'pro';
 
   // 2. Check if they are in the 24-Hour Free Trial
-  // user.createdAt is in milliseconds. 
-  // 24 hours = 1000 * 60 * 60 * 24 = 86400000 ms
   const oneDay = 86400000;
   const isFreeTrial = (Date.now() - user.createdAt) < oneDay;
 
-  // Grant access if either is true
   return isPro || isFreeTrial;
 }
 
-// --- 1. SINGLE PREDICTION ---
+// --- 1. SINGLE PREDICTION (OPENAI VERSION) ---
 export async function generatePrediction(data: PredictionData) {
   // 🟢 SECURITY GATE
   const isAllowed = await checkProStatus();
@@ -63,8 +62,8 @@ export async function generatePrediction(data: PredictionData) {
     return { error: "Upgrade Required: You must be a Pro member to use the AI." };
   }
 
-  if (!process.env.GEMINI_API_KEY) {
-    return { error: "Missing Gemini API Key. Please add it to .env.local" };
+  if (!process.env.OPENAI_API_KEY) {
+    return { error: "Missing OpenAI API Key. Please add it to .env.local" };
   }
 
   const trendSource = data.manualTrend 
@@ -78,15 +77,16 @@ export async function generatePrediction(data: PredictionData) {
   const prompt = `
     You are a professional NBA Betting Strategist.
 
-    ### 0. 🚨 CRITICAL ROSTER CHECK (READ FIRST)
+    ### 0. 🚨 CRITICAL REALITY CHECK (2026 SEASON)
     
     **A. TEAMMATE CHECK (Usage & Volume)**
     - **Active Roster:** [ ${activeRoster} ]
-    - **Instruction:** If you see stars (e.g. Brandon Ingram, Zion) listed here who are NOT in the historical logs, **THEY ARE PLAYING**. You MUST assume they will take shots away from ${data.player}.
+    - **Instruction:** This is the LIVE 2026 Roster. If you see stars (e.g. Brandon Ingram, Zion) listed here who are NOT in the historical logs, **THEY ARE PLAYING**. You MUST assume they will take shots away from ${data.player}.
+    - **Note:** Ignore your internal training data if it says these players are on other teams. This list is the source of truth.
     
     **B. OPPONENT CHECK (Defense & Matchups)**
     - **Opponent Roster:** [ ${opponentRoster} ]
-    - **Instruction:** Look at this list. Does the opponent have their elite defenders (e.g. Gobert, Wemby, Bam) listed? Or are they missing? Use this to determine if the matchup is actually "Easy" or "Hard."
+    - **Instruction:** Look for elite defenders (e.g. Gobert, Wemby, Bam) in this list to determine matchup difficulty.
 
     ### THE MATCHUP
     - Player: ${data.player}
@@ -108,93 +108,68 @@ export async function generatePrediction(data: PredictionData) {
     - Matchup: ${data.context.matchup}
 
     ### RULES:
-    1. TRUST THE USER NOTES AND ROSTER LIST ABOVE ALL ELSE.
+    1. TRUST THE ROSTER LIST ABOVE ALL ELSE.
     2. Analyze efficiency (shooting splits) over raw points.
     3. Be decisive.
 
     ### OUTPUT (JSON ONLY):
-    {
-      "pick": "OVER" or "UNDER",
-      "confidence": "Strong/Medium/Risky",
-      "thought_process": [
-          "1. Roster Check: I see [Star Name] is ACTIVE, which impacts usage...", 
-          "2. Analyzing recent efficiency...", 
-          "3. Matchup context..."
-      ],
-      "safe_line": "Alternative safe bet",
-      "risky_line": "High risk ladder play",
-      "better_prop": "Pivot suggestion"
-    }
+    Return a valid JSON object with these keys: pick, confidence, thought_process (array), safe_line, risky_line, better_prop.
   `;
 
   try {
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-flash-latest", 
-        generationConfig: { responseMimeType: "application/json" }
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o", // Strongest model for reasoning
+      messages: [
+        { role: "system", content: "You are a helpful sports betting assistant that outputs JSON." },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" }, 
     });
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const responseText = completion.choices[0].message.content;
+    if (!responseText) throw new Error("No response from OpenAI");
+    
     return JSON.parse(responseText);
 
   } catch (error: any) {
-    console.error("Gemini Error:", error);
+    console.error("OpenAI Error:", error);
     return { error: `AI Error: ${error.message}` };
   }
 }
 
-// --- 2. PARLAY GENERATOR ---
+// --- 2. PARLAY GENERATOR (OPENAI VERSION) ---
 export async function generateParlay(data: ParlayRequest) {
-  // 🟢 SECURITY GATE
   const isAllowed = await checkProStatus();
   if (!isAllowed) {
-    return { error: "Upgrade Required: You must be a Pro member to generate Parlays." };
+    return { error: "Upgrade Required." };
   }
 
   const prompt = `
     You are a High-Stakes Vegas Handicapper.
-    
-    ### CRITICAL INSTRUCTION:
-    You DO NOT have access to live internet. You DO NOT know today's specific injuries or schedule unless the user provided them below.
-    
-    If the user provided specific teams and injury news in the "NOTES" section below, analyze that strictly.
-    
-    IF THE USER DID NOT PROVIDE SPECIFIC GAMES/INJURIES:
-    - Do NOT make up a "hypothetical slate".
-    - Instead, generate a response that says: "⚠️ I need the slate! Please paste today's matchups and injury report in the box so I can give you a real lock."
-    - Do NOT return a fake bet.
     
     ### USER NOTES (THE SOURCE OF TRUTH):
     "${data.notes}"
 
     ### TASK:
     Construct a 3-Leg Parlay based ONLY on the user notes above. 
-    If they mentioned specific players being OUT (like Sabonis), FACTOR THAT IN IMMEDIATELY.
     
     ### OUTPUT (JSON ONLY):
-    {
-      "parlay_name": "The Custom Lock",
-      "total_odds": "+400 (Estimate)",
-      "risk_level": "Medium",
-      "legs": [
-        { 
-            "game": "Matchup Name", 
-            "bet": "Player Prop or Team ML", 
-            "reason": "Specific reason based on user notes..." 
-        }
-      ],
-      "analysis": "Summary of your logic based on the user's provided context."
-    }
+    Return valid JSON with: parlay_name, total_odds, risk_level, legs (array of objects), analysis.
   `;
 
   try {
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-flash-latest", 
-        generationConfig: { responseMimeType: "application/json" }
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "You are a Vegas handicapper. Output JSON." },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" },
     });
 
-    const result = await model.generateContent(prompt);
-    return JSON.parse(result.response.text());
+    const responseText = completion.choices[0].message.content;
+    if (!responseText) throw new Error("No response");
+    return JSON.parse(responseText);
 
   } catch (error: any) {
     console.error("Parlay Error:", error);
@@ -202,20 +177,15 @@ export async function generateParlay(data: ParlayRequest) {
   }
 }
 
-// --- 3. CHAT / DEBATE (UPDATED WITH REALITY CHECK) ---
+// --- 3. CHAT / DEBATE (OPENAI VERSION) ---
 export async function chatWithAI(data: ChatRequest) {
-    // 🟢 SECURITY GATE
     const isAllowed = await checkProStatus();
     if (!isAllowed) {
       return { error: "Upgrade Required" };
     }
 
-    // 🗓️ FORCE THE DATE & CONTEXT
     const today = new Date().toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
     });
   
     const prompt = `
@@ -224,40 +194,32 @@ export async function chatWithAI(data: ChatRequest) {
       ### CRITICAL REALITY CHECK:
       - **CURRENT DATE:** ${today}
       - **SEASON:** 2025-26 NBA Season.
-      - **ROSTER RULES:** The user is providing live, real-time data from the future (relative to your training data). 
-      - **DO NOT** use your internal training data to contradict the user's roster or stats. 
+      - **ROSTER RULES:** The user is providing live, real-time data from the future. 
       - If the user says Brandon Ingram is on the Raptors, **HE IS ON THE RAPTORS**.
-      - If the user says it is 2026, **IT IS 2026**.
   
-      ### PREVIOUS PREDICTION CONTEXT:
+      ### PREVIOUS CONTEXT:
       ${JSON.stringify(data.originalContext)}
   
       ### USER'S ARGUMENT:
       "${data.userMessage}"
   
-      ### INSTRUCTIONS:
-      1. Analyze the user's point based on the *current* 2025-26 reality, not 2024.
-      2. If the user mentions a trade or injury that contradicts your training data, **ASSUME THE USER IS CORRECT**.
-      3. If they are right, admit it and adjust the pick.
-      4. If they are wrong (e.g. relying on emotion), double down.
-      5. Keep it short, conversational, and slightly edgy.
-  
       ### OUTPUT (JSON ONLY):
-      {
-        "reply": "Your text response to the user...",
-        "adjusted_pick": "OVER (or SAME)",
-        "confidence_change": "Increased/Decreased/Same"
-      }
+      Return valid JSON with: reply, adjusted_pick, confidence_change.
     `;
   
     try {
-      const model = genAI.getGenerativeModel({ 
-          model: "gemini-flash-latest", 
-          generationConfig: { responseMimeType: "application/json" }
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: "You are a stubborn NBA analyst. Output JSON." },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" },
       });
   
-      const result = await model.generateContent(prompt);
-      return JSON.parse(result.response.text());
+      const responseText = completion.choices[0].message.content;
+      if (!responseText) throw new Error("No response");
+      return JSON.parse(responseText);
   
     } catch (error: any) {
       console.error("Chat Error:", error);
