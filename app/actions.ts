@@ -5,7 +5,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 
 // Initialize OpenAI
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // Ensure this is in .env.local
+  apiKey: process.env.OPENAI_API_KEY, 
 });
 
 // --- INTERFACES ---
@@ -22,8 +22,8 @@ interface PredictionData {
     blowout: string;
     injuries: string[];
     matchup: string;
-    roster?: string;         // 🟢 Teammates (Live from ESPN)
-    opponentRoster?: string; // 🟢 Opponents (Live from ESPN)
+    roster?: string;         
+    opponentRoster?: string; 
   };
 }
 
@@ -38,20 +38,17 @@ interface ChatRequest {
   userMessage: string;  
 }
 
-// --- HELPER: CHECK IF USER IS PRO OR IN FREE TRIAL ---
+// --- HELPER: STRICT PRO CHECK (NO FREE TRIAL) ---
 async function checkProStatus() {
   const user = await currentUser();
   
   if (!user) return false;
 
-  // 1. Check if they bought the plan (Stripe)
+  // 🟢 STRICT MODE: Only allow if metadata says 'pro'
+  // We removed the 24-hour date check entirely.
   const isPro = user.publicMetadata?.plan === 'pro';
 
-  // 2. Check if they are in the 24-Hour Free Trial
-  const oneDay = 86400000;
-  const isFreeTrial = (Date.now() - user.createdAt) < oneDay;
-
-  return isPro || isFreeTrial;
+  return isPro; 
 }
 
 // --- 1. SINGLE PREDICTION (OPENAI STRICT MODE) ---

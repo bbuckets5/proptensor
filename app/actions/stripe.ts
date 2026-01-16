@@ -4,10 +4,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { Stripe } from "stripe";
 import { redirect } from "next/navigation";
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2024-12-18.acacia' as any, 
-});
+// ❌ OLD SPOT: Initializing here caused the crash/spinning.
 
 export async function createCheckoutSession() {
   const { userId } = await auth();
@@ -17,10 +14,15 @@ export async function createCheckoutSession() {
     return { error: "Please log in to subscribe." };
   }
 
-  // 🟢 FIX: Define the Base URL using the variable you actually have
+  // 🟢 NEW SPOT: Initialize Stripe INSIDE the function.
+  // This is much safer and stops the "infinite loading" bug.
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+    apiVersion: '2024-12-18.acacia' as any, 
+  });
+
+  // This uses your correct URL variable from the .env list
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-  // 1. Create a variable to store the URL so we can use it later
   let sessionUrl: string | null = null;
 
   try {
@@ -34,7 +36,6 @@ export async function createCheckoutSession() {
       ],
       mode: "subscription",
       allow_promotion_codes: true,
-      // 🟢 FIX: Use 'baseUrl' here so it never sends "undefined" to Stripe
       success_url: `${baseUrl}/?success=true`,
       cancel_url: `${baseUrl}/?canceled=true`,
       customer_email: user.emailAddresses[0].emailAddress,
@@ -49,10 +50,9 @@ export async function createCheckoutSession() {
 
   } catch (error: any) {
     console.error("Stripe Error:", error);
-    return { error: error.message };
+    return { error: `Stripe Failed: ${error.message}` };
   }
 
-  // 3. Redirect HERE (Outside the try/catch block)
   if (sessionUrl) {
     redirect(sessionUrl);
   }
