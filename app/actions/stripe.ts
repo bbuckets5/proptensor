@@ -17,6 +17,9 @@ export async function createCheckoutSession() {
     return { error: "Please log in to subscribe." };
   }
 
+  // 🟢 FIX: Define the Base URL using the variable you actually have
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
   // 1. Create a variable to store the URL so we can use it later
   let sessionUrl: string | null = null;
 
@@ -30,9 +33,10 @@ export async function createCheckoutSession() {
         },
       ],
       mode: "subscription",
-      allow_promotion_codes: true, // <--- 🟢 THIS ENABLES THE COUPON BOX
-      success_url: `${process.env.NEXT_PUBLIC_URL}/?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}/?canceled=true`,
+      allow_promotion_codes: true,
+      // 🟢 FIX: Use 'baseUrl' here so it never sends "undefined" to Stripe
+      success_url: `${baseUrl}/?success=true`,
+      cancel_url: `${baseUrl}/?canceled=true`,
       customer_email: user.emailAddresses[0].emailAddress,
       metadata: {
         clerkUserId: userId,
