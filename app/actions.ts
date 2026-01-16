@@ -54,7 +54,7 @@ async function checkProStatus() {
   return isPro || isFreeTrial;
 }
 
-// --- 1. SINGLE PREDICTION (OPENAI VERSION) ---
+// --- 1. SINGLE PREDICTION (OPENAI STRICT MODE) ---
 export async function generatePrediction(data: PredictionData) {
   // 🟢 SECURITY GATE
   const isAllowed = await checkProStatus();
@@ -76,17 +76,15 @@ export async function generatePrediction(data: PredictionData) {
 
   const prompt = `
     You are a professional NBA Betting Strategist.
-
-    ### 0. 🚨 CRITICAL REALITY CHECK (2026 SEASON)
     
+    ### 0. 🚨 CRITICAL ROSTER CHECK (LIVE DATA)
     **A. TEAMMATE CHECK (Usage & Volume)**
     - **Active Roster:** [ ${activeRoster} ]
-    - **Instruction:** This is the LIVE 2026 Roster. If you see stars (e.g. Brandon Ingram, Zion) listed here who are NOT in the historical logs, **THEY ARE PLAYING**. You MUST assume they will take shots away from ${data.player}.
-    - **Note:** Ignore your internal training data if it says these players are on other teams. This list is the source of truth.
+    - **Instruction:** If you see stars (e.g. Brandon Ingram, Zion) listed here who are NOT in the historical logs, **THEY ARE PLAYING**. You MUST assume they will take shots away from ${data.player}.
     
     **B. OPPONENT CHECK (Defense & Matchups)**
     - **Opponent Roster:** [ ${opponentRoster} ]
-    - **Instruction:** Look for elite defenders (e.g. Gobert, Wemby, Bam) in this list to determine matchup difficulty.
+    - **Instruction:** Look for elite defenders (e.g. Gobert, Wemby, Bam) in this list.
 
     ### THE MATCHUP
     - Player: ${data.player}
@@ -109,21 +107,37 @@ export async function generatePrediction(data: PredictionData) {
 
     ### RULES:
     1. TRUST THE ROSTER LIST ABOVE ALL ELSE.
-    2. Analyze efficiency (shooting splits) over raw points.
+    2. Analyze efficiency over raw points.
     3. Be decisive.
 
-    ### OUTPUT (JSON ONLY):
-    Return a valid JSON object with these keys: pick, confidence, thought_process (array), safe_line, risky_line, better_prop.
+    ### OUTPUT FORMAT (JSON ONLY):
+    You must return a valid JSON object. Do not add markdown formatting.
+    {
+      "pick": "OVER" or "UNDER", 
+      "confidence": "Strong" or "Medium" or "Risky",
+      "thought_process": [
+          "1. Roster Check: I see [Star Name] is ACTIVE...", 
+          "2. Step 2...", 
+          "3. Step 3..."
+      ],
+      "safe_line": "Alternative safe bet",
+      "risky_line": "High risk ladder play",
+      "better_prop": "Pivot suggestion"
+    }
+    
+    IMPORTANT: "pick" MUST be exactly "OVER" or "UNDER". No other words.
+    IMPORTANT: "confidence" MUST be exactly "Strong", "Medium", or "Risky".
   `;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o", // Strongest model for reasoning
+      model: "gpt-4o", 
       messages: [
-        { role: "system", content: "You are a helpful sports betting assistant that outputs JSON." },
+        { role: "system", content: "You are a helpful sports betting assistant that outputs strict JSON." },
         { role: "user", content: prompt }
       ],
       response_format: { type: "json_object" }, 
+      temperature: 0, // 🟢 THIS KILLS RANDOMNESS (Fixes the flipping)
     });
 
     const responseText = completion.choices[0].message.content;
@@ -137,7 +151,7 @@ export async function generatePrediction(data: PredictionData) {
   }
 }
 
-// --- 2. PARLAY GENERATOR (OPENAI VERSION) ---
+// --- 2. PARLAY GENERATOR (OPENAI STRICT) ---
 export async function generateParlay(data: ParlayRequest) {
   const isAllowed = await checkProStatus();
   if (!isAllowed) {
@@ -165,6 +179,7 @@ export async function generateParlay(data: ParlayRequest) {
         { role: "user", content: prompt }
       ],
       response_format: { type: "json_object" },
+      temperature: 0.2, // Low randomness
     });
 
     const responseText = completion.choices[0].message.content;
@@ -177,7 +192,7 @@ export async function generateParlay(data: ParlayRequest) {
   }
 }
 
-// --- 3. CHAT / DEBATE (OPENAI VERSION) ---
+// --- 3. CHAT / DEBATE (OPENAI STRICT) ---
 export async function chatWithAI(data: ChatRequest) {
     const isAllowed = await checkProStatus();
     if (!isAllowed) {
@@ -215,6 +230,7 @@ export async function chatWithAI(data: ChatRequest) {
           { role: "user", content: prompt }
         ],
         response_format: { type: "json_object" },
+        temperature: 0.5, // Slight creativity for chatting
       });
   
       const responseText = completion.choices[0].message.content;
