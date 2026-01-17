@@ -76,7 +76,8 @@ export async function generatePrediction(data: PredictionData) {
     ### 0. 🚨 CRITICAL ROSTER CHECK (LIVE DATA)
     **A. TEAMMATE CHECK (Usage & Volume)**
     - **Active Roster:** [ ${activeRoster} ]
-    - **Instruction:** If you see stars (e.g. Brandon Ingram, Zion) listed here who are NOT in the historical logs, **THEY ARE PLAYING**. You MUST assume they will take shots away from ${data.player}.
+    - **Instruction:** Compare this Active Roster to the Historical Game Logs. 
+    - **Logic:** If a high-usage starter is **ACTIVE** today but was **MISSING** from the recent logs (Returning from Injury), you MUST assume they will take usage away from ${data.player}.
     
     **B. OPPONENT CHECK (Defense & Matchups)**
     - **Opponent Roster:** [ ${opponentRoster} ]
@@ -161,7 +162,7 @@ export async function generateParlay(data: ParlayRequest) {
     "${data.notes}"
 
     ### TASK:
-    Construct a 3-Leg Parlay based ONLY on the user notes above. 
+    Construct a 3-Leg Parlay based ONLY on user notes above. 
     
     ### OUTPUT (JSON ONLY):
     Return valid JSON with: parlay_name, total_odds, risk_level, legs (array of objects), analysis.
@@ -195,8 +196,6 @@ export async function chatWithAI(data: ChatRequest) {
       return { error: "Upgrade Required" };
     }
 
-    // 🟢 EXTRACT LIVE ROSTERS FROM THE SAVED CONTEXT
-    // This looks at the data sent from the previous page to know who is actually playing.
     const liveRoster = data.originalContext?.context?.roster || "Unknown Roster";
     const liveOpponentRoster = data.originalContext?.context?.opponentRoster || "Unknown Opponent";
     const playerTeam = data.originalContext?.player || "The Player";
@@ -217,7 +216,8 @@ export async function chatWithAI(data: ChatRequest) {
       **CURRENT OPPONENTS:**
       [ ${liveOpponentRoster} ]
 
-      **RULE:** If a player is NOT in the list above, THEY ARE NOT ON THE TEAM. Do not mention Zion, Valančiūnas, or anyone else unless they are listed in that bracket.
+      **RULE:** If a player is NOT in the list above, THEY ARE NOT ON THE TEAM. 
+      **RULE:** Do NOT mention historical teammates who are no longer on the roster.
 
       ### PREVIOUS CONTEXT:
       ${JSON.stringify(data.originalContext)}
