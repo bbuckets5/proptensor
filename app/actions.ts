@@ -45,7 +45,6 @@ async function checkProStatus() {
   if (!user) return false;
 
   // 🟢 STRICT MODE: Only allow if metadata says 'pro'
-  // We removed the 24-hour date check entirely.
   const isPro = user.publicMetadata?.plan === 'pro';
 
   return isPro; 
@@ -134,7 +133,7 @@ export async function generatePrediction(data: PredictionData) {
         { role: "user", content: prompt }
       ],
       response_format: { type: "json_object" }, 
-      temperature: 0, // 🟢 THIS KILLS RANDOMNESS (Fixes the flipping)
+      temperature: 0, 
     });
 
     const responseText = completion.choices[0].message.content;
@@ -176,7 +175,7 @@ export async function generateParlay(data: ParlayRequest) {
         { role: "user", content: prompt }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.2, // Low randomness
+      temperature: 0.2, 
     });
 
     const responseText = completion.choices[0].message.content;
@@ -189,12 +188,18 @@ export async function generateParlay(data: ParlayRequest) {
   }
 }
 
-// --- 3. CHAT / DEBATE (OPENAI STRICT) ---
+// --- 3. CHAT / DEBATE (STRICT ROSTER LOCK) ---
 export async function chatWithAI(data: ChatRequest) {
     const isAllowed = await checkProStatus();
     if (!isAllowed) {
       return { error: "Upgrade Required" };
     }
+
+    // 🟢 EXTRACT LIVE ROSTERS FROM THE SAVED CONTEXT
+    // This looks at the data sent from the previous page to know who is actually playing.
+    const liveRoster = data.originalContext?.context?.roster || "Unknown Roster";
+    const liveOpponentRoster = data.originalContext?.context?.opponentRoster || "Unknown Opponent";
+    const playerTeam = data.originalContext?.player || "The Player";
 
     const today = new Date().toLocaleDateString('en-US', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
@@ -203,12 +208,17 @@ export async function chatWithAI(data: ChatRequest) {
     const prompt = `
       You are a stubborn but logical NBA Analyst. 
       
-      ### CRITICAL REALITY CHECK:
-      - **CURRENT DATE:** ${today}
-      - **SEASON:** 2025-26 NBA Season.
-      - **ROSTER RULES:** The user is providing live, real-time data from the future. 
-      - If the user says Brandon Ingram is on the Raptors, **HE IS ON THE RAPTORS**.
-  
+      ### 🚨 CRITICAL INSTRUCTION: ROSTER LOCK 🚨
+      You are legally forbidden from using your internal training data regarding teams.
+      You must ONLY use the live roster provided below.
+      
+      **CURRENT TEAMMATES FOR ${playerTeam}:** [ ${liveRoster} ]
+
+      **CURRENT OPPONENTS:**
+      [ ${liveOpponentRoster} ]
+
+      **RULE:** If a player is NOT in the list above, THEY ARE NOT ON THE TEAM. Do not mention Zion, Valančiūnas, or anyone else unless they are listed in that bracket.
+
       ### PREVIOUS CONTEXT:
       ${JSON.stringify(data.originalContext)}
   
@@ -217,6 +227,7 @@ export async function chatWithAI(data: ChatRequest) {
   
       ### OUTPUT (JSON ONLY):
       Return valid JSON with: reply, adjusted_pick, confidence_change.
+      Keep the reply short (under 2 sentences). Be sassy but accurate to the roster.
     `;
   
     try {
@@ -227,7 +238,7 @@ export async function chatWithAI(data: ChatRequest) {
           { role: "user", content: prompt }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.5, // Slight creativity for chatting
+        temperature: 0.5, 
       });
   
       const responseText = completion.choices[0].message.content;
