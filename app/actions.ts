@@ -162,7 +162,7 @@ export async function generateParlay(data: ParlayRequest) {
     "${data.notes}"
 
     ### TASK:
-    Construct a 3-Leg Parlay based ONLY on user notes above. 
+    Construct a 3-Leg Parlay based ONLY on the user notes above. 
     
     ### OUTPUT (JSON ONLY):
     Return valid JSON with: parlay_name, total_odds, risk_level, legs (array of objects), analysis.
@@ -189,7 +189,7 @@ export async function generateParlay(data: ParlayRequest) {
   }
 }
 
-// --- 3. CHAT / DEBATE (STRICT ROSTER LOCK) ---
+// --- 3. CHAT / DEBATE (STRICT ROSTER LOCK + PROFESSIONAL TONE) ---
 export async function chatWithAI(data: ChatRequest) {
     const isAllowed = await checkProStatus();
     if (!isAllowed) {
@@ -227,7 +227,7 @@ export async function chatWithAI(data: ChatRequest) {
   
       ### OUTPUT (JSON ONLY):
       Return valid JSON with: reply, adjusted_pick, confidence_change.
-      Keep the reply short (under 2 sentences). Be sassy but accurate to the roster.
+      Keep the reply short (under 2 sentences). Be Direct, Professional, No-Nonsense, and strictly accurate to the roster.
     `;
   
     try {
