@@ -124,9 +124,9 @@ export async function generatePrediction(data: PredictionData) {
       "pick": "OVER" or "UNDER", 
       "confidence": "Strong" or "Medium" or "Risky",
       "thought_process": [
-          "1. Context Check: I see [Factor]...", 
-          "2. Matchup: The opponent plays [Fast/Slow]...", 
-          "3. Verdict: ..."
+          "1. Context Analysis: [Explain specific details about Rest, Home/Away, and Pace here. Be descriptive.]", 
+          "2. Matchup Breakdown: [Explain how the opponent's defense and pace impacts this specific bet.]", 
+          "3. Final Verdict: [Explain why the context outweighs the raw stats or vice versa.]"
       ],
       "safe_line": "Alternative safe bet",
       "risky_line": "High risk ladder play",
@@ -135,6 +135,7 @@ export async function generatePrediction(data: PredictionData) {
     
     IMPORTANT: "pick" MUST be exactly "OVER" or "UNDER". No other words.
     IMPORTANT: "confidence" MUST be exactly "Strong", "Medium", or "Risky".
+    IMPORTANT: Ensure the thought_process provides detailed, specific reasons based on the context rules (A, B, C, D).
   `;
 
   try {
