@@ -94,6 +94,7 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
              else if (betType === 'Pts + Rebs + Asts') val = (parseFloat(g.points) + parseFloat(g.rebounds) + parseFloat(g.assists)).toString();
              else if (betType === 'Pts + Rebs') val = (parseFloat(g.points) + parseFloat(g.rebounds)).toString();
              else if (betType === 'Pts + Asts') val = (parseFloat(g.points) + parseFloat(g.assists)).toString();
+             else if (betType === 'Rebs + Asts') val = (parseFloat(g.rebounds) + parseFloat(g.assists)).toString(); // 🟢 ADDED RA LOGIC
              else if (betType === 'Steals + Blocks') val = (parseFloat(g.steals) + parseFloat(g.blocks)).toString();
              
              // Fantasy Score
@@ -362,39 +363,39 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
 
           {/* --- NEW: CHAT / DEBATE SECTION --- */}
           <div className="bg-zinc-800 p-6 border-4 border-black text-white">
-             <h3 className="font-black text-xl uppercase mb-4 flex items-center gap-2"><span>💬</span> Debate the AI</h3>
-             
-             {/* Chat History / Response */}
-             {chatResponse && (
-                 <div className="bg-zinc-700 border-2 border-white p-4 mb-4 animate-in slide-in-from-left-2">
-                     <p className="font-mono font-bold text-sm mb-2 text-green-400">AI REPLY:</p>
-                     <p className="mb-2">{chatResponse.reply}</p>
-                     {chatResponse.adjusted_pick !== prediction.pick && (
-                         <div className="bg-red-600 text-white px-2 py-1 inline-block text-xs font-black uppercase">
-                             PICK CHANGED TO: {chatResponse.adjusted_pick}
-                         </div>
-                     )}
-                 </div>
-             )}
+              <h3 className="font-black text-xl uppercase mb-4 flex items-center gap-2"><span>💬</span> Debate the AI</h3>
+              
+              {/* Chat History / Response */}
+              {chatResponse && (
+                  <div className="bg-zinc-700 border-2 border-white p-4 mb-4 animate-in slide-in-from-left-2">
+                      <p className="font-mono font-bold text-sm mb-2 text-green-400">AI REPLY:</p>
+                      <p className="mb-2">{chatResponse.reply}</p>
+                      {chatResponse.adjusted_pick !== prediction.pick && (
+                          <div className="bg-red-600 text-white px-2 py-1 inline-block text-xs font-black uppercase">
+                              PICK CHANGED TO: {chatResponse.adjusted_pick}
+                          </div>
+                      )}
+                  </div>
+              )}
 
-             {/* 🟢 MOBILE FIX 4: Flex-col on mobile, Row on desktop */}
-             <div className="flex flex-col md:flex-row gap-2">
-                 <input 
+              {/* 🟢 MOBILE FIX 4: Flex-col on mobile, Row on desktop */}
+              <div className="flex flex-col md:flex-row gap-2">
+                  <input 
                     type="text" 
                     placeholder="E.g. But Curry is sitting out tonight..." 
                     className="w-full md:flex-1 p-3 text-black font-bold border-4 border-white focus:outline-none focus:bg-blue-50"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleChatSubmit()}
-                 />
-                 <button 
+                  />
+                  <button 
                     onClick={handleChatSubmit} 
                     disabled={isChatting}
                     className="w-full md:w-auto bg-white text-black font-black uppercase px-6 py-3 md:py-0 hover:bg-gray-200 border-4 border-white disabled:opacity-50"
-                 >
+                  >
                     {isChatting ? '...' : 'Reply'}
-                 </button>
-             </div>
+                  </button>
+              </div>
           </div>
           
           <button onClick={() => setPrediction(null)} className="w-full border-4 border-black py-4 font-black hover:bg-zinc-200 uppercase tracking-widest text-xl">Run New Simulation</button>
@@ -409,7 +410,14 @@ export default function AnalysisView({ player, opponent, onBack }: Props) {
                     <select className="p-2 border-4 border-black font-bold w-full md:w-1/2" value={betType} onChange={e => setBetType(e.target.value)}>
                         <optgroup label="Main Stats"><option value="Points">Points</option><option value="Rebounds">Rebounds</option><option value="Assists">Assists</option><option value="Threes Made">Threes Made</option><option value="Fantasy Score">Fantasy Score</option></optgroup>
                         <optgroup label="Defense/Misc"><option value="Turnovers">Turnovers</option><option value="Steals">Steals</option><option value="Blocks">Blocks</option><option value="Steals + Blocks">Steals + Blocks</option></optgroup>
-                        <optgroup label="Combos"><option value="Pts + Rebs + Asts">Pts + Rebs + Asts</option><option value="Pts + Rebs">Pts + Rebs</option><option value="Pts + Asts">Pts + Asts</option><option value="Double Double">Double Double</option></optgroup>
+                        {/* 🟢 UPDATED COMBOS LIST */}
+                        <optgroup label="Combos">
+                            <option value="Pts + Rebs + Asts">Pts + Rebs + Asts</option>
+                            <option value="Pts + Rebs">Pts + Rebs</option>
+                            <option value="Pts + Asts">Pts + Asts</option>
+                            <option value="Rebs + Asts">Rebs + Asts</option>
+                            <option value="Double Double">Double Double</option>
+                        </optgroup>
                         <optgroup label="Shooting Efficiency"><option value="FGA">FG Attempts</option><option value="FGM">FG Made</option><option value="3PA">3-Pt Attempts</option><option value="FTM">Free Throws Made</option></optgroup>
                     </select>
                     <input type="number" placeholder="e.g. 24.5" className="w-full md:flex-1 p-2 border-4 border-black font-mono text-xl focus:outline-none focus:bg-white" value={bettingLine} onChange={e => setBettingLine(e.target.value)} />

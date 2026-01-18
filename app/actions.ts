@@ -50,7 +50,7 @@ async function checkProStatus() {
   return isPro; 
 }
 
-// --- 1. SINGLE PREDICTION (OPENAI STRICT MODE) ---
+// --- 1. SINGLE PREDICTION (THE "DEEP THINKER" UPGRADE) ---
 export async function generatePrediction(data: PredictionData) {
   // 🟢 SECURITY GATE
   const isAllowed = await checkProStatus();
@@ -71,17 +71,28 @@ export async function generatePrediction(data: PredictionData) {
   const opponentRoster = data.context.opponentRoster || "Unknown";
 
   const prompt = `
-    You are a professional NBA Betting Strategist.
+    You are a professional NBA Betting Strategist (Vegas Sharp).
     
-    ### 0. 🚨 CRITICAL ROSTER CHECK (LIVE DATA)
-    **A. TEAMMATE CHECK (Usage & Volume)**
+    ### 0. 🚨 CRITICAL CONTEXT CHECK (THE "INVISIBLE" VARIABLES)
+    
+    **A. ROSTER & STAR RETURN LOGIC**
     - **Active Roster:** [ ${activeRoster} ]
     - **Instruction:** Compare this Active Roster to the Historical Game Logs. 
-    - **Logic:** If a high-usage starter is **ACTIVE** today but was **MISSING** from the recent logs (Returning from Injury), you MUST assume they will take usage away from ${data.player}.
-    
-    **B. OPPONENT CHECK (Defense & Matchups)**
-    - **Opponent Roster:** [ ${opponentRoster} ]
-    - **Instruction:** Look for elite defenders (e.g. Gobert, Wemby, Bam) in this list.
+    - **Logic 1 (Star Return):** If a High-Usage Star is **ACTIVE** today but **MISSING** from recent logs (Returning from Injury), you MUST downgrade role players (they lose volume).
+    - **Logic 2 (Low Data/Rust):** If the player being analyzed IS the returning Star (with little recent data), ignore "Rust" and trust their Class/Reputation, but be wary of Minutes Restrictions.
+
+    **B. SCHEDULE & FATIGUE (Back-to-Backs)**
+    - **Instruction:** Check the recent game dates. 
+    - **Logic:** If the player played Yesterday (0 Days Rest), expect "Tired Legs" (Lean UNDER on Shooting) and "Lazy Defense" (Lean OVER for Opponent).
+
+    **C. LOCATION SPLITS (Home vs Road)**
+    - **Logic:** Role players generally shoot ~10% better at HOME. Stars perform anywhere.
+    - If this is a Road Game for a Role Player, slight downgrade on shooting props.
+
+    **D. PACE & GAME SCRIPT**
+    - **Opponent Roster:** [ ${opponentRoster} ] (Check for Defenders like Gobert/Wemby).
+    - **Pace Logic:** If Opponent plays FAST (e.g. Pacers, Kings), expect +10% inflated stats (More Possessions). If SLOW (e.g. Knicks, Heat), expect -10%.
+    - **Blowout Logic:** If spread is huge (>15pts), Starters sit the 4th Qtr. Lean UNDER on High Lines.
 
     ### THE MATCHUP
     - Player: ${data.player}
@@ -103,7 +114,7 @@ export async function generatePrediction(data: PredictionData) {
     - Matchup: ${data.context.matchup}
 
     ### RULES:
-    1. TRUST THE ROSTER LIST ABOVE ALL ELSE.
+    1. **TRUST THE CONTEXT OVER THE LOGS.** If the logs say "Over" but the Star is returning and it's a blowout risk, take the UNDER.
     2. Analyze efficiency over raw points.
     3. Be decisive.
 
@@ -113,9 +124,9 @@ export async function generatePrediction(data: PredictionData) {
       "pick": "OVER" or "UNDER", 
       "confidence": "Strong" or "Medium" or "Risky",
       "thought_process": [
-          "1. Roster Check: I see [Star Name] is ACTIVE...", 
-          "2. Step 2...", 
-          "3. Step 3..."
+          "1. Context Check: I see [Factor]...", 
+          "2. Matchup: The opponent plays [Fast/Slow]...", 
+          "3. Verdict: ..."
       ],
       "safe_line": "Alternative safe bet",
       "risky_line": "High risk ladder play",
