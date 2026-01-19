@@ -3,16 +3,9 @@
 // 🟢 ROBUST TEAM MAP: Ensures ESPN never rejects a team code
 const TEAM_MAP: Record<string, string> = {
   // Common Issues Fixed
-  "UTA": "utah",
-  "NOP": "no",
-  "SAS": "sa",
-  "GSW": "gs",
-  "NYK": "ny",
-  "WAS": "wsh",
-  "PHX": "phx", // Sometimes PHO, but PHX usually works on v2
-  "BKN": "bkn",
-  "OKC": "okc",
-  // Standard (Just in case)
+  "UTA": "utah", "NOP": "no", "SAS": "sa", "GSW": "gs", "NYK": "ny",
+  "WAS": "wsh", "PHX": "phx", "BKN": "bkn", "OKC": "okc",
+  // Standard
   "ATL": "atl", "BOS": "bos", "CHA": "cha", "CHI": "chi", "CLE": "cle",
   "DAL": "dal", "DEN": "den", "DET": "det", "HOU": "hou", "IND": "ind",
   "LAC": "lac", "LAL": "lal", "MEM": "mem", "MIA": "mia", "MIL": "mil",
@@ -47,7 +40,7 @@ export async function getRoster(teamAbbrev: string) {
   }));
 }
 
-// --- UPDATED: DYNAMIC STAT MAPPING (Fixes "Wrong Stats" Bug) ---
+// --- UPDATED: DYNAMIC STAT MAPPING + FORCE SORT BY DATE ---
 
 export async function getLast10Games(playerId: string) {
   try {
@@ -69,10 +62,9 @@ export async function getLast10Games(playerId: string) {
     // 2. Get Data & Headers
     const category = regularSeason.categories?.[0];
     const events = category?.events || [];
-    const labels = category?.labels || []; // 🟢 HEADERS: ["MIN", "FG", "REB", "AST", "PTS"...]
+    const labels = category?.labels || []; 
 
     // 3. Map Indices Dynamically (Find where "PTS" lives)
-    // This prevents errors if ESPN shifts columns around
     const idx = {
         min: labels.indexOf("MIN"),
         pts: labels.indexOf("PTS"),
@@ -86,22 +78,25 @@ export async function getLast10Games(playerId: string) {
         ft:  labels.indexOf("FT")
     };
 
-    // Fallback if headers fail (Standard 2025 Map)
+    // Fallback if headers fail (Standard Map)
     if (idx.pts === -1) {
         idx.min=0; idx.fg=1; idx.t3=3; idx.ft=5; idx.reb=7; idx.ast=8; idx.blk=9; idx.stl=10; idx.to=12; idx.pts=13;
     }
 
-    // 4. Filter only played games & Get Last 10 Newest
+    // 4. THE FIX: Filter out future games, Sort by Date Descending, then Slice
     const playedGames = events
-        .filter((g: any) => g.stats && g.stats.length > 0) // Only games with stats
-        .reverse() // Newest first
+        .filter((g: any) => g.stats && g.stats.length > 0) // Only games with stats (removes scheduled games)
+        .sort((a: any, b: any) => {
+            // Force sort: Newest Date First
+            return new Date(b.gameDate).getTime() - new Date(a.gameDate).getTime();
+        })
         .slice(0, 10);
 
     return playedGames.map((game: any) => {
       const s = game.stats; 
       
       return {
-        // UI DATA (Seen by User in Grid)
+        // UI DATA
         date: game.gameDate,
         opponent: game.opponent?.abbreviation || "OPP",
         result: game.gameResult || "-",
@@ -113,7 +108,7 @@ export async function getLast10Games(playerId: string) {
         rebounds: s[idx.reb] || "0",
         assists: s[idx.ast] || "0",
 
-        // DEEP DATA (Hidden for AI Analysis)
+        // DEEP DATA
         steals: s[idx.stl] || "0",
         blocks: s[idx.blk] || "0",
         turnovers: s[idx.to] || "0",
