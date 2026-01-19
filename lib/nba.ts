@@ -47,7 +47,7 @@ export async function getRoster(teamAbbrev: string) {
   }));
 }
 
-// --- UPDATED FUNCTION WITH CORRECT REVERSE LOGIC ---
+// --- UPDATED: DYNAMIC STAT MAPPING (Fixes "Wrong Stats" Bug) ---
 
 export async function getLast10Games(playerId: string) {
   try {
@@ -60,20 +60,45 @@ export async function getLast10Games(playerId: string) {
 
     const data = await response.json();
     
-    // Specifically look for the Regular Season (id "2")
+    // 1. Locate Regular Season
     const seasonTypes = data.seasonTypes || [];
     const regularSeason = seasonTypes.find((s: any) => s.id === "2" || s.slug === "regular-season") || seasonTypes[0];
     
-    const events = regularSeason?.categories?.[0]?.events || [];
-    
-    // 🟢 THE FIX: Reverse the array to get NEWEST games first, then take 10
-    const last10 = events.reverse().slice(0, 10);
+    if (!regularSeason) return [];
 
-    return last10.map((game: any) => {
-      const stats = game.stats; 
-      
-      // ESPN 2024-25 Stat Map:
-      // 0:MIN, 1:FG, 2:FG%, 3:3PT, 4:3P%, 5:FT, 6:FT%, 7:REB, 8:AST, 9:BLK, 10:STL, 11:PF, 12:TO, 13:PTS
+    // 2. Get Data & Headers
+    const category = regularSeason.categories?.[0];
+    const events = category?.events || [];
+    const labels = category?.labels || []; // 🟢 HEADERS: ["MIN", "FG", "REB", "AST", "PTS"...]
+
+    // 3. Map Indices Dynamically (Find where "PTS" lives)
+    // This prevents errors if ESPN shifts columns around
+    const idx = {
+        min: labels.indexOf("MIN"),
+        pts: labels.indexOf("PTS"),
+        reb: labels.indexOf("REB"),
+        ast: labels.indexOf("AST"),
+        stl: labels.indexOf("STL"),
+        blk: labels.indexOf("BLK"),
+        to:  labels.indexOf("TO"),
+        fg:  labels.indexOf("FG"),
+        t3:  labels.indexOf("3PT"),
+        ft:  labels.indexOf("FT")
+    };
+
+    // Fallback if headers fail (Standard 2025 Map)
+    if (idx.pts === -1) {
+        idx.min=0; idx.fg=1; idx.t3=3; idx.ft=5; idx.reb=7; idx.ast=8; idx.blk=9; idx.stl=10; idx.to=12; idx.pts=13;
+    }
+
+    // 4. Filter only played games & Get Last 10 Newest
+    const playedGames = events
+        .filter((g: any) => g.stats && g.stats.length > 0) // Only games with stats
+        .reverse() // Newest first
+        .slice(0, 10);
+
+    return playedGames.map((game: any) => {
+      const s = game.stats; 
       
       return {
         // UI DATA (Seen by User in Grid)
@@ -82,18 +107,21 @@ export async function getLast10Games(playerId: string) {
         result: game.gameResult || "-",
         score: game.score || "",
         
-        minutes: stats[0] || "0",
-        points: stats[13] || "0",
-        rebounds: stats[7] || "0",
-        assists: stats[8] || "0",
+        // DYNAMIC MAPPED STATS
+        minutes: s[idx.min] || "0",
+        points: s[idx.pts] || "0",
+        rebounds: s[idx.reb] || "0",
+        assists: s[idx.ast] || "0",
 
         // DEEP DATA (Hidden for AI Analysis)
-        steals: stats[10] || "0",
-        blocks: stats[9] || "0",
-        turnovers: stats[12] || "0",
-        fgSplit: stats[1] || "0-0",   // e.g. "7-14"
-        threePtSplit: stats[3] || "0-0", // e.g. "2-5"
-        ftSplit: stats[5] || "0-0"    // e.g. "5-6"
+        steals: s[idx.stl] || "0",
+        blocks: s[idx.blk] || "0",
+        turnovers: s[idx.to] || "0",
+        
+        // Splits
+        fgSplit: s[idx.fg] || "0-0", 
+        threePtSplit: s[idx.t3] || "0-0",
+        ftSplit: s[idx.ft] || "0-0"
       };
     });
   } catch (error) {
